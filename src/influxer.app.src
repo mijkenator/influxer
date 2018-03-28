@@ -1,0 +1,18 @@
+{application, influxer,
+ [{description, "Performance influxdb writer with batch support"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {mod, { influxer_app, []}},
+  {applications,
+   [kernel,
+    stdlib,
+    buoy,
+    lager
+   ]},
+  {env,[]},
+  {modules, []},
+
+  {maintainers, []},
+  {licenses, ["Apache 2.0"]},
+  {links, []}
+ ]}.

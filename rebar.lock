@@ -1,0 +1,20 @@
+{"1.1.0",
+[{<<"buoy">>,
+  {git,"https://github.com/lpgauth/buoy.git",
+       {ref,"c4530309dfd50303339ff4e368dafe06ec9b5ceb"}},
+  0},
+ {<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.9">>},1},
+ {<<"granderl">>,{pkg,<<"granderl">>,<<"0.1.5">>},2},
+ {<<"lager">>,
+  {git,"https://github.com/erlang-lager/lager.git",
+       {ref,"144cece24cc3a6abbf77e980e10742f92627c6e2"}},
+  0},
+ {<<"metal">>,{pkg,<<"metal">>,<<"0.1.1">>},2},
+ {<<"shackle">>,{pkg,<<"shackle">>,<<"0.5.4">>},1}]}.
+[
+{pkg_hash,[
+ {<<"goldrush">>, <<"F06E5D5F1277DA5C413E84D5A2924174182FB108DABB39D5EC548B27424CD106">>},
+ {<<"granderl">>, <<"F20077A68BD80B8D8783BD15A052813C6483771DEC1A5B837D307CBE92F14122">>},
+ {<<"metal">>, <<"5D3D1322DA7BCD34B94FED5486F577973685298883954F7A3E517EF5EF6953F5">>},
+ {<<"shackle">>, <<"0234BA60D897CE8A3CCC5A9CDC09DB015B7BDDC1F8494D172AB767814F9DA460">>}]}
+].
