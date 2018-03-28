@@ -34,7 +34,7 @@
 
 test() ->
     influxer_app:start(),
-    batcher_sup:start_child(b1, [<<"http://10.0.0.85:8086/write?db=mkh_data">>, <<"root">>,<<"Rbccm2018">>,1,2000,1000]),
+    batcher_sup:start_child(b1, [<<"http://10.0.0.85:8086/write?db=mkh_data">>, <<"root">>,<<"tttttt">>,1,2000,1000]),
     lager:set_loglevel(lager_console_backend, debug),
     batcher_worker:batch_write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 2.25},{<<"average">>, 2.25},{<<"val2">>, 3.25}]}),
     lager:debug("1", []),
