@@ -27,7 +27,6 @@
                 timeout = 2000, batch_timeout = ?BATCH_TIMEOUT, 
                 batch_max_count = ?BATCH_MAX_COUNT, read_burl = undefined}).
 
-
 change_batch_params(Server, Params) ->
     gen_server:cast(Server, {change_batch_params, Params}).
 
