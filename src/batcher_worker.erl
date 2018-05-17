@@ -7,7 +7,8 @@
          batch_write/2,
          write/2,
          change_batch_params/2,
-         test/0
+         query/3,
+         get_state/1
         ]).
 
 %% gen_server callbacks
@@ -24,36 +25,22 @@
 -record(state, {time = 0, count = 0, buf = <<>>, 
                 auth_token = undefined, burl = undefined,
                 timeout = 2000, batch_timeout = ?BATCH_TIMEOUT, 
-                batch_max_count = ?BATCH_MAX_COUNT}).
+                batch_max_count = ?BATCH_MAX_COUNT, read_burl = undefined}).
 
-%
-% influxer_app:start().
-% batcher_sup:start_child(b1, [<<"http://10.0.0.85:8086/write?db=mkh_data">>, <<"root">>,<<"Rbccm2018">>,1,2000,1000]).
-% batcher_worker:write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 1.5},{<<"average">>, 2.5},{<<"val2">>, 3.5}]}).
-%
-
-test() ->
-    influxer_app:start(),
-    batcher_sup:start_child(b1, [<<"http://10.0.0.85:8086/write?db=mkh_data">>, <<"root">>,<<"Rbccm2018">>,1,2000,1000]),
-    lager:set_loglevel(lager_console_backend, debug),
-    batcher_worker:batch_write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 2.25},{<<"average">>, 2.25},{<<"val2">>, 3.25}]}),
-    lager:debug("1", []),
-    batcher_worker:batch_write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 3.26},{<<"average">>, 2.26},{<<"val2">>, 3.26}]}),
-    lager:debug("2", []),
-    batcher_worker:batch_write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 4.27},{<<"average">>, 2.27},{<<"val2">>, 3.27}]}),
-    lager:debug("3", []),
-    batcher_worker:batch_write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 5.28},{<<"average">>, 2.28},{<<"val2">>, 3.28}]}),
-    lager:debug("4", []),
-    batcher_worker:batch_write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 6.29},{<<"average">>, 2.29},{<<"val2">>, 3.29}]}),
-    lager:debug("5", []),
-    batcher_worker:write(b1, {<<"mkh_test5">>, [{<<"tag1">>,<<"t1">>},{<<"tag2">>, <<"t2">>}], [{<<"value">>, 7.29},{<<"average">>, 2.29},{<<"val2">>, 3.29}]}),
-    ok.
 
 change_batch_params(Server, Params) ->
     gen_server:cast(Server, {change_batch_params, Params}).
 
 batch_write(Server, {Table, Tags, Values}) ->
     gen_server:cast(Server, {batch_write, Table, Tags, Values}).
+
+get_state(Server) -> 
+    gen_server:call(Server, get_state).
+
+query(Server, DB, Query) -> 
+    gen_server:call(Server, {query, 
+                             influxer_utils:to_list(DB), 
+                             influxer_utils:to_list(Query)}).
 
 write(Server, {Table, Tags, Values}) ->
     gen_server:cast(Server, {write, Table, Tags, Values}).
@@ -64,14 +51,26 @@ start_link([Name | Args]) ->
     gen_server:start_link({local, Name}, ?MODULE, Args, []).
 
 init([Url, Login, Password, PoolSize, TimeOut, BatchMaxSize]) ->
+    RUrl = influxer_utils:get_read_url(Url),
     lager:debug("Batcher worker with pool start ~p ~n", [{Url, Login, Password, PoolSize, TimeOut, BatchMaxSize}]),
-    influxer_utils:start_pool({Url, [{pool_size, PoolSize}]}),
-    BUrl = buoy_utils:parse_url(Url),
+    influxer_utils:start_pool({Url,  [{pool_size, PoolSize}]}),
+    influxer_utils:start_pool({RUrl, [{pool_size, 1}]}),
+    BUrl  = buoy_utils:parse_url(Url),
+    BRUrl = buoy_utils:parse_url(RUrl),
     AuthToken = influxer_utils:get_auth_token(Login, Password),
     timer:send_after(?BATCH_TIMEOUT, self(), batch_out),
     {ok, #state{auth_token = AuthToken, burl = BUrl, timeout = TimeOut, 
-                batch_max_count = BatchMaxSize}}.
+                batch_max_count = BatchMaxSize, read_burl = BRUrl}}.
 
+handle_call({query, DB, Query}, _, #state{read_burl = BUrl, 
+                                      auth_token = AuthToken, timeout = TimeOut} = State) ->
+    Headers   = [{<<"Authorization">>, AuthToken},
+         {<<"Content-Type">>, <<"application/x-www-form-urlencoded">>}],
+    Body = list_to_binary("db=" ++ http_uri:encode(DB) ++ "&q=" ++ http_uri:encode(Query)),
+    {ok, {buoy_resp, done, Resp, _, _, <<"OK">>, 200}}  = buoy:post(BUrl, Headers, Body, TimeOut),
+    {reply, Resp, State};
+handle_call(get_state, _, State)    -> 
+    {reply, State, State};
 handle_call(_Request, _From, State) ->
     {reply, ignored, State}.
 
