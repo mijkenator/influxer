@@ -90,13 +90,13 @@ handle_cast({batch_write, Table, Tags, Values},
     T1 = case T of 0 -> CT; _ -> T end,
     case {C > BMC, CT - T1 > ?BATCH_TIMEOUT} of
         {false, false} -> 
-            lager:debug("Influxer batch write save buf: ~p", [NB]),
+            %lager:debug("Influxer batch write save buf: ~p", [NB]),
             {noreply, State#state{count=C+1, buf=NB}}
         ;_ ->
             Headers   = [{<<"Authorization">>, AuthToken},
                  {<<"Content-Type">>, <<"application/octet-stream">>}],
             Ret = buoy:post(BUrl, Headers, NB, TimeOut),
-            lager:debug("Influxer batch write ~p ~n -> resp: ~p", [NB, Ret]),
+            %lager:debug("Influxer batch write ~p ~n -> resp: ~p", [NB, Ret]),
             {noreply, State#state{count=0, buf = <<>>, time = CT}}
     end;
 handle_cast({write, Table, Tags, Values}, 
@@ -107,13 +107,13 @@ handle_cast({write, Table, Tags, Values},
     Headers   = [{<<"Authorization">>, AuthToken},
          {<<"Content-Type">>, <<"application/octet-stream">>}],
     Ret = buoy:post(BUrl, Headers, Body, TimeOut),
-    lager:debug("Influxer single write resp: ~p", [Ret]),
+    %lager:debug("Influxer single write resp: ~p", [Ret]),
     {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(_Info, #state{auth_token = AuthToken, timeout = TimeOut, burl = BUrl, buf = Buf} = State) ->
-    lager:debug("Info: ~p ~n", [{self(), _Info}]),
+    %lager:debug("Info: ~p ~n", [{self(), _Info}]),
     case Buf of
         <<>> -> 
             timer:send_after(?BATCH_TIMEOUT, self(), batch_out),
@@ -122,7 +122,7 @@ handle_info(_Info, #state{auth_token = AuthToken, timeout = TimeOut, burl = BUrl
             Headers   = [{<<"Authorization">>, AuthToken},
                  {<<"Content-Type">>, <<"application/octet-stream">>}],
             Ret = buoy:post(BUrl, Headers, Buf, TimeOut),
-            lager:debug("HI Influxer batch write ~p ~n -> resp: ~p", [Buf, Ret]),
+            %lager:debug("HI Influxer batch write ~p ~n -> resp: ~p", [Buf, Ret]),
             CT = erlang:system_time(millisecond),
             timer:send_after(?BATCH_TIMEOUT, self(), batch_out),
             {noreply, State#state{count=0, buf = <<>>, time = CT}}
